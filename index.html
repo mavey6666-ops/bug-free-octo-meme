@@ -1,0 +1,620 @@
+﻿<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>إدارة شاحنة المياه</title>
+  <script src="/_sdk/element_sdk.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <style>
+    * {
+      font-family: 'Segoe UI', 'Droid Arabic Kufi', Tahoma, Geneva, sans-serif;
+    }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .slide-in {
+      animation: slideIn 0.3s ease-out;
+    }
+
+    .fade-in {
+      animation: fadeIn 0.3s ease-out;
+    }
+
+    .card-item {
+      transition: all 0.2s ease;
+    }
+
+    .card-item:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+    }
+
+    .status-paid {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    }
+
+    .status-unpaid {
+      background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    }
+
+    .price-badge {
+      display: inline-block;
+      padding: 0.5rem 1rem;
+      border-radius: 0.5rem;
+      font-weight: bold;
+    }
+
+    .price-3 { background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%); color: white; }
+    .price-4 { background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%); color: white; }
+    .price-5 { background: linear-gradient(135deg, #ec4899 0%, #be185d 100%); color: white; }
+
+    input[type="date"], select {
+      direction: ltr !important;
+    }
+
+    .loader {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(255,255,255,.3);
+      border-radius: 50%;
+      border-top-color: white;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+  <style>body { box-sizing: border-box; }</style>
+  <script src="/_sdk/data_sdk.js" type="text/javascript"></script>
+</head>
+<body class="bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 h-full">
+
+  <!-- ========== واجهة تسجيل الدخول ========== -->
+  <div id="loginPage" class="min-h-screen flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md fade-in">
+      <div class="text-center mb-8">
+        <div class="bg-gradient-to-r from-blue-600 to-indigo-700 inline-flex p-4 rounded-xl shadow-lg mb-4">
+          <i data-lucide="droplet" class="text-white" style="width: 40px; height: 40px;"></i>
+        </div>
+        <h1 class="text-2xl font-bold text-gray-800">تسجيل الدخول</h1>
+        <p class="text-gray-500 mt-1">نظام إدارة شاحنة المياه</p>
+      </div>
+      <form id="loginForm" class="space-y-5">
+        <div>
+          <label class="block text-gray-700 font-semibold mb-2">اسم المستخدم</label>
+          <input type="text" id="loginUsername" required placeholder="أدخل اسم المستحق"
+            class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none transition">
+        </div>
+        <div>
+          <label class="block text-gray-700 font-semibold mb-2">كلمة المرور</label>
+          <input type="password" id="loginPassword" required placeholder="أدخل كلمة المرور"
+            class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none transition">
+        </div>
+        <p id="loginError" class="text-red-600 font-semibold text-sm hidden"></p>
+        <button type="submit"
+          class="w-full bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white font-bold py-3 px-6 rounded-lg transition shadow-lg hover:shadow-xl flex items-center justify-center gap-2">
+          <i data-lucide="log-in" style="width: 20px; height: 20px;"></i>
+          دخول
+        </button>
+      </form>
+      <p class="text-center mt-6 text-gray-600">
+        ليس لديك حساب؟
+        <button id="showRegisterBtn" class="text-blue-600 font-bold hover:underline bg-transparent border-none cursor-pointer">أنشئ حساباً جديداً</button>
+      </p>
+    </div>
+  </div>
+
+  <!-- ========== واجهة إنشاء حساب (مخفية بداية) ========== -->
+  <div id="registerPage" class="min-h-screen flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md fade-in">
+      <div class="text-center mb-8">
+        <div class="bg-gradient-to-r from-emerald-600 to-teal-600 inline-flex p-4 rounded-xl shadow-lg mb-4">
+          <i data-lucide="user-plus" class="text-white" style="width: 40px; height: 40px;"></i>
+        </div>
+        <h1 class="text-2xl font-bold text-gray-800">إنشاء حساب جديد</h1>
+        <p class="text-gray-500 mt-1">سجل بياناتك للوصول إلى النظام</p>
+      </div>
+      <form id="registerForm" class="space-y-5">
+        <div>
+          <label class="block text-gray-700 font-semibold mb-2">اسم المستخدم</label>
+          <input type="text" id="regUsername" required placeholder="اختر اسم مستخدم"
+            class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none transition">
+        </div>
+        <div>
+          <label class="block text-gray-700 font-semibold mb-2">كلمة المرور</label>
+          <input type="password" id="regPassword" required placeholder="أدخل كلمة مرور"
+            class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none transition">
+        </div>
+        <p id="regError" class="text-red-600 font-semibold text-sm hidden"></p>
+        <button type="submit"
+          class="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold py-3 px-6 rounded-lg transition shadow-lg hover:shadow-xl flex items-center justify-center gap-2">
+          <i data-lucide="user-check" style="width: 20px; height: 20px;"></i>
+          إنشاء الحساب
+        </button>
+      </form>
+      <p class="text-center mt-6 text-gray-600">
+        لديك حساب بالفعل؟
+        <button id="showLoginBtn" class="text-blue-600 font-bold hover:underline bg-transparent border-none cursor-pointer">سجّل دخولك</button>
+      </p>
+    </div>
+  </div>
+
+  <!-- ========== التطبيق الرئيسي (مخفي بداية) ========== -->
+  <div id="appPage" class="app-wrapper h-full w-full overflow-auto hidden">
+    <!-- Header -->
+    <header class="bg-gradient-to-r from-blue-600 to-indigo-700 shadow-lg sticky top-0 z-20">
+      <div class="max-w-6xl mx-auto px-4 py-6">
+        <div class="flex items-center justify-between flex-wrap gap-4">
+          <div class="flex items-center gap-3">
+            <div class="bg-white bg-opacity-20 p-3 rounded-lg">
+              <i data-lucide="droplet" class="text-white" style="width: 28px; height: 28px;"></i>
+            </div>
+            <div>
+              <h1 id="app-title" class="text-2xl font-bold text-white">إدارة شاحنة المياه</h1>
+              <p class="text-blue-100 text-sm">نظام إدارة التوصيلات والفواتير</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-3">
+            <div class="bg-white bg-opacity-20 px-4 py-2 rounded-lg text-white">
+              <span id="today-date" class="font-semibold"></span>
+            </div>
+            <button id="logoutButton" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg transition flex items-center gap-2 shadow-md">
+              <i data-lucide="log-out" style="width: 18px; height: 18px;"></i>
+              خروج
+            </button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content (نفس كود تطبيقك) -->
+    <main class="max-w-6xl mx-auto px-4 py-8">
+      <!-- Tabs Navigation -->
+      <div class="flex gap-2 mb-6 overflow-x-auto pb-2">
+        <button onclick="switchTab('add')" class="tab-btn active bg-white shadow-md px-6 py-3 rounded-lg font-semibold text-blue-600 hover:shadow-lg transition flex items-center gap-2 whitespace-nowrap"> <i data-lucide="plus-circle" style="width: 20px; height: 20px;"></i> إضافة توصيلة </button>
+        <button onclick="switchTab('records')" class="tab-btn bg-white shadow-md px-6 py-3 rounded-lg font-semibold text-gray-600 hover:shadow-lg transition flex items-center gap-2 whitespace-nowrap"> <i data-lucide="list" style="width: 20px; height: 20px;"></i> السجلات </button>
+        <button onclick="switchTab('stats')" class="tab-btn bg-white shadow-md px-6 py-3 rounded-lg font-semibold text-gray-600 hover:shadow-lg transition flex items-center gap-2 whitespace-nowrap"> <i data-lucide="bar-chart-2" style="width: 20px; height: 20px;"></i> الإحصائيات </button>
+      </div>
+      <!-- Tab 1: Add New Delivery -->
+      <div id="tab-add" class="tab-content">
+        <div class="bg-white rounded-xl shadow-xl p-8 slide-in">
+          <h2 class="text-2xl font-bold text-gray-800 mb-8 flex items-center gap-2"><i data-lucide="plus-circle" style="width: 24px; height: 24px;" class="text-blue-600"></i> إضافة توصيلة جديدة</h2>
+          <form id="deliveryForm" class="space-y-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div><label class="block text-gray-700 font-semibold mb-2">اسم الزبون *</label><input type="text" id="customerName" placeholder="أدخل اسم أو لقب الزبون" required class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none transition"></div>
+              <div><label class="block text-gray-700 font-semibold mb-2">رقم الهاتف (اختياري)</label><input type="tel" id="phone" placeholder="مثال: 0505555555" class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none transition"></div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div><label class="block text-gray-700 font-semibold mb-2">السعر (ريال) *</label><select id="price" required class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none transition"><option value="">اختر السعر</option><option value="3">3 ريال</option><option value="4">4 ريال</option><option value="5">5 ريال</option></select></div>
+              <div><label class="block text-gray-700 font-semibold mb-2">عدد التريبات *</label><input type="number" id="trips" placeholder="1" min="1" value="1" required class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none transition"></div>
+              <div><label class="block text-gray-700 font-semibold mb-2">تاريخ التعبئة *</label><input type="date" id="deliveryDate" required class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none transition"></div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div class="flex items-center gap-4"><label class="flex items-center gap-3 cursor-pointer"><input type="checkbox" id="isPaid" class="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"><span class="text-gray-700 font-semibold">تم الدفع</span></label></div>
+              <div id="paymentDateContainer" class="hidden"><label class="block text-gray-700 font-semibold mb-2">موعد الدفع (اختياري)</label><input type="date" id="paymentDate" class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none transition"></div>
+            </div>
+            <div><label class="block text-gray-700 font-semibold mb-2">ملاحظات (اختياري)</label><textarea id="notes" placeholder="أضف أي ملاحظات مهمة..." class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none transition" rows="3"></textarea></div>
+            <div class="border-2 border-dashed border-blue-300 rounded-lg p-6 bg-blue-50">
+              <label class="flex flex-col items-center justify-center cursor-pointer"><i data-lucide="camera" style="width: 32px; height: 32px;" class="text-blue-600 mb-2"></i><span class="text-gray-700 font-semibold">اضغط لإضافة صورة</span><span class="text-gray-500 text-sm">أو صور الإيصالات والتواريخ</span><input type="file" id="imageInput" accept="image/*" class="hidden"></label>
+              <div id="imagePreview" class="mt-4"></div>
+            </div>
+            <button type="submit" class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-4 px-6 rounded-lg transition shadow-lg hover:shadow-xl flex items-center justify-center gap-2"><span id="submitText">حفظ التوصيلة</span><span id="submitLoader" class="loader hidden"></span></button>
+          </form>
+        </div>
+      </div>
+      <!-- Tab 2: Records -->
+      <div id="tab-records" class="tab-content hidden">
+        <div class="space-y-6">
+          <div class="bg-white rounded-xl shadow-lg p-6">
+            <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2"><i data-lucide="filter" style="width: 20px; height: 20px;" class="text-blue-600"></i> خيارات البحث والتصفية</h3>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div><label class="block text-gray-700 font-semibold mb-2">البحث بالاسم</label><input type="text" id="filterName" placeholder="اسم الزبون..." class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none transition"></div>
+              <div><label class="block text-gray-700 font-semibold mb-2">من التاريخ</label><input type="date" id="filterFromDate" class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none transition"></div>
+              <div><label class="block text-gray-700 font-semibold mb-2">إلى التاريخ</label><input type="date" id="filterToDate" class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none transition"></div>
+              <div><label class="block text-gray-700 font-semibold mb-2">حالة الدفع</label><select id="filterPayment" class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none transition"><option value="">الكل</option><option value="paid">مدفوع</option><option value="unpaid">لم يدفع</option></select></div>
+            </div>
+            <button onclick="applyFilters()" class="mt-4 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg transition flex items-center gap-2 w-full md:w-auto"><i data-lucide="search" style="width: 18px; height: 18px;"></i> بحث</button>
+          </div>
+          <div id="recordsList" class="space-y-4"><div class="text-center py-12 text-gray-500"><i data-lucide="inbox" style="width: 48px; height: 48px;" class="mx-auto mb-4 opacity-50"></i><p class="text-lg">لا توجد سجلات حالياً</p></div></div>
+        </div>
+      </div>
+      <!-- Tab 3: Statistics -->
+      <div id="tab-stats" class="tab-content hidden">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <div class="bg-white rounded-xl shadow-lg p-6 border-t-4 border-blue-600"><div class="flex items-center justify-between"><div><p class="text-gray-600 text-sm font-semibold">إجمالي التوصيلات</p><p id="stat-deliveries" class="text-3xl font-bold text-blue-600 mt-2">0</p></div><i data-lucide="package" style="width: 40px; height: 40px;" class="text-blue-600 opacity-20"></i></div></div>
+          <div class="bg-white rounded-xl shadow-lg p-6 border-t-4 border-green-600"><div class="flex items-center justify-between"><div><p class="text-gray-600 text-sm font-semibold">المبلغ المدفوع</p><p id="stat-paid" class="text-3xl font-bold text-green-600 mt-2">0 ريال</p></div><i data-lucide="credit-card" style="width: 40px; height: 40px;" class="text-green-600 opacity-20"></i></div></div>
+          <div class="bg-white rounded-xl shadow-lg p-6 border-t-4 border-amber-600"><div class="flex items-center justify-between"><div><p class="text-gray-600 text-sm font-semibold">المبلغ المتبقي</p><p id="stat-unpaid" class="text-3xl font-bold text-amber-600 mt-2">0 ريال</p></div><i data-lucide="alert-circle" style="width: 40px; height: 40px;" class="text-amber-600 opacity-20"></i></div></div>
+          <div class="bg-white rounded-xl shadow-lg p-6 border-t-4 border-indigo-600"><div class="flex items-center justify-between"><div><p class="text-gray-600 text-sm font-semibold">إجمالي التريبات</p><p id="stat-trips" class="text-3xl font-bold text-indigo-600 mt-2">0</p></div><i data-lucide="repeat" style="width: 40px; height: 40px;" class="text-indigo-600 opacity-20"></i></div></div>
+        </div>
+        <div class="bg-white rounded-xl shadow-lg p-6"><h3 class="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2"><i data-lucide="bar-chart-2" style="width: 20px; height: 20px;" class="text-blue-600"></i> الإيرادات حسب الشهر</h3><div id="monthlyChart" class="space-y-4"><div class="text-center text-gray-500">لا توجد بيانات</div></div></div>
+      </div>
+    </main>
+
+    <!-- Modals -->
+    
+      </div>
+    </div>
+    <div id="imageModal" class="fixed inset-0 bg-black bg-opacity-75 hidden flex items-center justify-center z-50 p-4">
+      <div class="relative max-w-2xl w-full">
+        <button onclick="closeImageModal()" class="absolute -top-10 left-0 text-white hover:text-gray-300 text-3xl font-bold">×</button>
+        <img id="modalImage" src="" alt="صورة التوصيلة" class="w-full rounded-lg shadow-2xl">
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ========== منطق التنقل بين الصفحات ==========
+    const loginPage = document.getElementById('loginPage');
+    const registerPage = document.getElementById('registerPage');
+    const appPage = document.getElementById('appPage');
+
+    function showPage(page) {
+      loginPage.classList.add('hidden');
+      registerPage.classList.add('hidden');
+      appPage.classList.add('hidden');
+      page.classList.remove('hidden');
+      // إعادة تهيئة الأيقونات لأن hidden قد يمنعها
+      if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
+
+    // التحقق من جلسة سابقة
+    if (localStorage.getItem('loggedInUser')) {
+      showPage(appPage);
+    } else {
+      showPage(loginPage);
+    }
+
+    // الزر من login إلى register
+    document.getElementById('showRegisterBtn').addEventListener('click', () => showPage(registerPage));
+    // الزر من register إلى login
+    document.getElementById('showLoginBtn').addEventListener('click', () => showPage(loginPage));
+
+    // ========== تسجيل الدخول ==========
+    document.getElementById('loginForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const username = document.getElementById('loginUsername').value.trim();
+      const password = document.getElementById('loginPassword').value;
+      const errorEl = document.getElementById('loginError');
+      errorEl.classList.add('hidden');
+      const users = JSON.parse(localStorage.getItem('appUsers')) || {};
+
+      if (users[username] && users[username] === password) {
+        localStorage.setItem('loggedInUser', username);
+        showPage(appPage);
+        // تحديث واجهة التطبيق بعد الإظهار
+        refreshApp();
+      } else {
+        errorEl.textContent = 'اسم المستخدم أو كلمة المرور غير صحيحة';
+        errorEl.classList.remove('hidden');
+      }
+    });
+
+    // ========== إنشاء حساب ==========
+    document.getElementById('registerForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const username = document.getElementById('regUsername').value.trim();
+      const password = document.getElementById('regPassword').value;
+      const errorEl = document.getElementById('regError');
+      errorEl.classList.add('hidden');
+      if (username === '' || password === '') {
+        errorEl.textContent = 'الرجاء ملء جميع الحقول';
+        errorEl.classList.remove('hidden');
+        return;
+      }
+      let users = JSON.parse(localStorage.getItem('appUsers')) || {};
+      if (users[username]) {
+        errorEl.textContent = 'اسم المستخدم موجود مسبقاً';
+        errorEl.classList.remove('hidden');
+        return;
+      }
+      users[username] = password;
+      localStorage.setItem('appUsers', JSON.stringify(users));
+      alert('تم إنشاء الحساب بنجاح! يمكنك الآن تسجيل الدخول.');
+      showPage(loginPage);
+      // مسح حقول التسجيل
+      document.getElementById('regUsername').value = '';
+      document.getElementById('regPassword').value = '';
+    });
+
+    // ========== زر الخروج من التطبيق ==========
+    document.getElementById('logoutButton').addEventListener('click', function() {
+      localStorage.removeItem('loggedInUser');
+      showPage(loginPage);
+      document.getElementById('loginUsername').value = '';
+      document.getElementById('loginPassword').value = '';
+    });
+
+    // ========== نسخ كود التطبيق الأصلي (مع تعديلات طفيفة للتوافق مع الصفحة الواحدة) ==========
+    let allRecords = [];
+    let recordToDelete = null;
+    let currentImageData = null;
+    let defaultConfig = { app_title: "إدارة شاحنة المياه" };
+    let config = { ...defaultConfig };
+
+    async function initializeSDKs() {
+      if (window.elementSdk) {
+        window.elementSdk.init({
+          defaultConfig,
+          onConfigChange: (newConfig) => {
+            config = { ...newConfig };
+            document.getElementById('app-title').textContent = config.app_title || defaultConfig.app_title;
+          },
+          mapToCapabilities: () => ({
+            recolorables: [], borderables: [], fontEditable: undefined, fontSizeable: undefined
+          }),
+          mapToEditPanelValues: () => new Map([['app_title', config.app_title || defaultConfig.app_title]])
+        });
+      }
+    }
+
+    function setTodayDate() {
+      const today = new Date().toLocaleDateString('ar-SA', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+      document.getElementById('today-date').textContent = today;
+      const dateInput = document.getElementById('deliveryDate');
+      if (dateInput) dateInput.value = new Date().toISOString().split('T')[0];
+    }
+
+    function switchTab(tabName) {
+      document.querySelectorAll('.tab-content').forEach(tab => tab.classList.add('hidden'));
+      document.querySelectorAll('.tab-btn').forEach(btn => { btn.classList.remove('active', 'bg-blue-600', 'text-white'); btn.classList.add('bg-white', 'text-gray-600'); });
+      const tabEl = document.getElementById('tab-' + tabName);
+      if (tabEl) tabEl.classList.remove('hidden');
+      if (event && event.target) {
+        const btn = event.target.closest('.tab-btn');
+        if (btn) { btn.classList.add('active', 'bg-blue-600', 'text-white'); btn.classList.remove('bg-white', 'text-gray-600'); }
+      }
+    }
+
+    // ربط الأحداث (مرة واحدة بعد تحميل DOM)
+    function bindAppEvents() {
+      document.getElementById('isPaid')?.addEventListener('change', function() {
+        document.getElementById('paymentDateContainer').classList.toggle('hidden', !this.checked);
+      });
+      document.getElementById('imageInput')?.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = function(event) {
+            currentImageData = event.target.result;
+            document.getElementById('imagePreview').innerHTML = `
+              <div class="relative inline-block">
+                <img src="${currentImageData}" alt="معاينة" class="rounded-lg max-h-48 w-auto shadow-md">
+                <button type="button" onclick="clearImage()" class="absolute -top-2 -right-2 bg-red-600 hover:bg-red-700 text-white rounded-full w-8 h-8 flex items-center justify-center shadow-lg">×</button>
+              </div>`;
+          };
+          reader.readAsDataURL(file);
+        }
+      });
+      document.getElementById('deliveryForm')?.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const submitBtn = document.querySelector('#deliveryForm button[type="submit"]');
+        submitBtn.disabled = true;
+        document.getElementById('submitLoader').classList.remove('hidden');
+        document.getElementById('submitText').classList.add('hidden');
+
+        const formData = {
+          id: Date.now().toString(),
+          customer_name: document.getElementById('customerName').value,
+          phone: document.getElementById('phone').value || '',
+          price: parseInt(document.getElementById('price').value),
+          trips: parseInt(document.getElementById('trips').value),
+          paid: document.getElementById('isPaid').checked,
+          payment_date: document.getElementById('paymentDate').value || '',
+          delivery_date: document.getElementById('deliveryDate').value,
+          image_data: currentImageData || '',
+          notes: document.getElementById('notes').value || '',
+          created_at: new Date().toISOString()
+        };
+
+        if (allRecords.length >= 999) {
+          alert('تم الوصول للحد الأقصى (999). احذف بعض السجلات.');
+          submitBtn.disabled = false;
+          document.getElementById('submitLoader').classList.add('hidden');
+          document.getElementById('submitText').classList.remove('hidden');
+          return;
+        }
+
+        allRecords.push(formData);
+        localStorage.setItem('waterTruckRecords', JSON.stringify(allRecords));
+        document.getElementById('deliveryForm').reset();
+        clearImage();
+        document.getElementById('isPaid').checked = false;
+        document.getElementById('paymentDateContainer').classList.add('hidden');
+        setTodayDate();
+        submitBtn.disabled = false;
+        document.getElementById('submitLoader').classList.add('hidden');
+        document.getElementById('submitText').classList.remove('hidden');
+        updateRecordsList();
+        updateStats();
+        alert('تم حفظ التوصيلة بنجاح!');
+      });
+    }
+
+    function clearImage() {
+      currentImageData = null;
+      document.getElementById('imageInput').value = '';
+      document.getElementById('imagePreview').innerHTML = '';
+    }
+
+    function updateRecordsList() {
+      const container = document.getElementById('recordsList');
+      if (!container) return;
+      if (allRecords.length === 0) {
+        container.innerHTML = `<div class="text-center py-12 text-gray-500 bg-white rounded-xl shadow"><i data-lucide="inbox" style="width:48px;height:48px" class="mx-auto mb-4 opacity-50"></i><p class="text-lg">لا توجد سجلات حالياً</p></div>`;
+        lucide.createIcons();
+        return;
+      }
+      container.innerHTML = allRecords.map(r => `
+        <div class="bg-white rounded-xl shadow-lg p-6 card-item slide-in">
+          <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+            <div class="flex-1">
+              <div class="flex items-center gap-3 mb-4"><h3 class="text-xl font-bold text-gray-800">${r.customer_name}</h3><span class="price-badge price-${r.price}">${r.price} ريال</span></div>
+              <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4 text-sm">
+                <div><p class="text-gray-500">التاريخ</p><p class="font-semibold">${formatDate(r.delivery_date)}</p></div>
+                <div><p class="text-gray-500">التريبات</p><p class="font-semibold text-lg">${r.trips}</p></div>
+                <div><p class="text-gray-500">الإجمالي</p><p class="font-semibold text-blue-600 text-lg">${r.price * r.trips} ريال</p></div>
+                <div><p class="text-gray-500">الحالة</p><p class="font-semibold ${r.paid ? 'text-green-600' : 'text-amber-600'}">${r.paid ? '✓ مدفوع' : '⏳ لم يدفع'}</p></div>
+              </div>
+              ${r.phone ? `<p class="text-gray-600"><strong>الهاتف:</strong> ${r.phone}</p>` : ''}
+              ${r.notes ? `<p class="text-gray-600 mt-2"><strong>ملاحظات:</strong> ${r.notes}</p>` : ''}
+            </div>
+            <div class="flex gap-2 flex-wrap md:flex-col">
+              ${r.image_data ? `<button onclick="viewImage('${r.image_data.substring(0,50)}...')" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition flex items-center gap-2"><i data-lucide="image" style="width:18px;height:18px"></i> صورة</button>` : ''}
+              <button onclick="deleteRecord('${r.id}')" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition flex items-center gap-2"><i data-lucide="trash-2" style="width:18px;height:18px"></i> حذف</button>
+            </div>
+          </div>
+        </div>`).join('');
+      lucide.createIcons();
+    }
+
+    window.deleteRecord = function(id) {
+      recordToDelete = allRecords.find(r => r.id === id);
+      document.getElementById('deleteModal').classList.remove('hidden');
+    };
+    window.confirmDelete = async function() {
+      if (!recordToDelete) return;
+      document.getElementById('deleteLoader').classList.remove('hidden');
+      document.getElementById('deleteText').classList.add('hidden');
+      allRecords = allRecords.filter(r => r.id !== recordToDelete.id);
+      localStorage.setItem('waterTruckRecords', JSON.stringify(allRecords));
+      document.getElementById('deleteModal').classList.add('hidden');
+      recordToDelete = null;
+      document.getElementById('deleteLoader').classList.add('hidden');
+      document.getElementById('deleteText').classList.remove('hidden');
+      updateRecordsList(); updateStats();
+    };
+    window.cancelDelete = function() {
+      document.getElementById('deleteModal').classList.add('hidden');
+      recordToDelete = null;
+    };
+    window.viewImage = function(src) {
+      const record = allRecords.find(r => r.image_data && r.image_data.substring(0,50) === src);
+      if (record && record.image_data) {
+        document.getElementById('modalImage').src = record.image_data;
+        document.getElementById('imageModal').classList.remove('hidden');
+      }
+    };
+    window.closeImageModal = function() {
+      document.getElementById('imageModal').classList.add('hidden');
+    };
+    function formatDate(dateStr) {
+      const date = new Date(dateStr + 'T00:00:00');
+      return date.toLocaleDateString('ar-SA', { year: 'numeric', month: '2-digit', day: '2-digit' });
+    }
+    function updateStats() {
+      const total = allRecords.length;
+      const trips = allRecords.reduce((s,r) => s + r.trips, 0);
+      const amount = allRecords.reduce((s,r) => s + (r.price * r.trips), 0);
+      const paid = allRecords.filter(r => r.paid).reduce((s,r) => s + (r.price * r.trips), 0);
+      document.getElementById('stat-deliveries').textContent = total;
+      document.getElementById('stat-trips').textContent = trips;
+      document.getElementById('stat-paid').textContent = paid + ' ريال';
+      document.getElementById('stat-unpaid').textContent = (amount - paid) + ' ريال';
+      updateMonthlyChart();
+    }
+    function updateMonthlyChart() {
+      const monthly = {};
+      allRecords.forEach(r => {
+        const d = new Date(r.delivery_date);
+        const key = d.toLocaleDateString('ar-SA', { month: 'long', year: 'numeric' });
+        monthly[key] = (monthly[key] || 0) + (r.price * r.trips);
+      });
+      const chart = document.getElementById('monthlyChart');
+      if (!Object.keys(monthly).length) {
+        chart.innerHTML = '<div class="text-center text-gray-500">لا توجد بيانات</div>';
+        return;
+      }
+      const max = Math.max(...Object.values(monthly));
+      chart.innerHTML = Object.entries(monthly).map(([m, v]) => {
+        const pct = (v / max) * 100;
+        return `<div class="space-y-2"><div class="flex justify-between"><span class="font-semibold text-gray-700">${m}</span><span class="text-blue-600 font-bold">${v} ريال</span></div><div class="w-full bg-gray-200 rounded-full h-3"><div class="bg-gradient-to-r from-blue-500 to-blue-600 h-full rounded-full" style="width:${pct}%"></div></div></div>`;
+      }).join('');
+    }
+    window.applyFilters = function() {
+      const name = document.getElementById('filterName').value.toLowerCase();
+      const from = document.getElementById('filterFromDate').value;
+      const to = document.getElementById('filterToDate').value;
+      const pay = document.getElementById('filterPayment').value;
+      const filtered = allRecords.filter(r => 
+        r.customer_name.toLowerCase().includes(name) &&
+        (!from || r.delivery_date >= from) &&
+        (!to || r.delivery_date <= to) &&
+        (!pay || (pay === 'paid' ? r.paid : !r.paid))
+      );
+      const container = document.getElementById('recordsList');
+      if (!filtered.length) {
+        container.innerHTML = `<div class="text-center py-12 text-gray-500 bg-white rounded-xl shadow"><i data-lucide="search" style="width:48px;height:48px" class="mx-auto mb-4 opacity-50"></i><p class="text-lg">لم يتم العثور على نتائج</p></div>`;
+      } else {
+        container.innerHTML = filtered.map(r => `
+          <div class="bg-white rounded-xl shadow-lg p-6 card-item slide-in">
+            <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+              <div class="flex-1">
+                <div class="flex items-center gap-3 mb-4"><h3 class="text-xl font-bold text-gray-800">${r.customer_name}</h3><span class="price-badge price-${r.price}">${r.price} ريال</span></div>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4 text-sm">
+                  <div><p class="text-gray-500">التاريخ</p><p class="font-semibold">${formatDate(r.delivery_date)}</p></div>
+                  <div><p class="text-gray-500">التريبات</p><p class="font-semibold text-lg">${r.trips}</p></div>
+                  <div><p class="text-gray-500">الإجمالي</p><p class="font-semibold text-blue-600 text-lg">${r.price * r.trips} ريال</p></div>
+                  <div><p class="text-gray-500">الحالة</p><p class="font-semibold ${r.paid ? 'text-green-600' : 'text-amber-600'}">${r.paid ? '✓ مدفوع' : '⏳ لم يدفع'}</p></div>
+                </div>
+                ${r.phone ? `<p class="text-gray-600"><strong>الهاتف:</strong> ${r.phone}</p>` : ''}
+                ${r.notes ? `<p class="text-gray-600 mt-2"><strong>ملاحظات:</strong> ${r.notes}</p>` : ''}
+              </div>
+              <div class="flex gap-2 flex-wrap md:flex-col">
+                ${r.image_data ? `<button onclick="viewImage('${r.image_data.substring(0,50)}...')" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition flex items-center gap-2"><i data-lucide="image" style="width:18px;height:18px"></i> صورة</button>` : ''}
+                <button onclick="deleteRecord('${r.id}')" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition flex items-center gap-2"><i data-lucide="trash-2" style="width:18px;height:18px"></i> حذف</button>
+              </div>
+            </div>
+          </div>`).join('');
+      }
+      lucide.createIcons();
+    };
+
+    // دالة استدعاء عند إظهار التطبيق لتحديث البيانات
+    function refreshApp() {
+      const saved = localStorage.getItem('waterTruckRecords');
+      if (saved) {
+        try { allRecords = JSON.parse(saved); } catch(e) { allRecords = []; }
+      }
+      setTodayDate();
+      initializeSDKs();
+      updateRecordsList();
+      updateStats();
+      bindAppEvents();
+      lucide.createIcons();
+    }
+
+    // تحميل أولي للبيانات (لحالة الجلسة المفتوحة)
+    (function initialLoad() {
+      const saved = localStorage.getItem('waterTruckRecords');
+      if (saved) {
+        try { allRecords = JSON.parse(saved); } catch(e) { allRecords = []; }
+      }
+      // ربط الأحداث عند الجاهزية
+      document.addEventListener('DOMContentLoaded', function() {
+        bindAppEvents();
+        if (localStorage.getItem('loggedInUser')) {
+          setTodayDate();
+          initializeSDKs();
+          updateRecordsList();
+          updateStats();
+        }
+        lucide.createIcons();
+      });
+    })();
+
+  </script>
+<div class="text-center py-4 text-gray-500 text-sm mt-8">
+  <span>تصميم 🇴🇲🇮🇷🇵🇸: <strong class="text-indigo-600"> الشكيلي</strong></span>
+</div>
